@@ -24,7 +24,7 @@ SECRET_KEY = 'q0m1jqzh!*2^gu(9$7$marhv2$s0zv3kfsqh=4ge#ba95z*d&k'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.131.128']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'mail.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '192.168.131.128',
+        'HOST': '127.0.0.1',
         'USER': 'mail',
         'PASSWORD': 'WOshi000.',
         'PORT': '3306',
@@ -125,7 +125,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 # 配置静态文件搜索路径
-STATICFILES_URL = [os.path.join(BASE_DIR, 'static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 
 CACHES = {
@@ -188,3 +188,5 @@ LOGGING = {
         },
     }
 }
+# 设置项目模型类
+AUTH_USER_MODEL = 'users.User'
