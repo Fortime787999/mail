@@ -14,7 +14,7 @@ import os
 import sys
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(BASE_DIR, 'mail.apps'))
+sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -24,7 +24,7 @@ SECRET_KEY = 'q0m1jqzh!*2^gu(9$7$marhv2$s0zv3kfsqh=4ge#ba95z*d&k'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.131.128']
 
 
 # Application definition
@@ -64,7 +64,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
             # 补充Jinja2模板引擎环境
-            'environment': 'meiduo_mall.utils.jinja2_env.jinja2_environment',
+            'environment': 'mail.utils.jinja2_env.jinja2_environment',
         },
     },
 ]
@@ -144,7 +144,7 @@ CACHES = {
         }
     },
 }
-SESSION_ENGINE = 'django.contrib.session.backends.cache'  # 修改session存储机制，使用redis存储
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'  # 修改session存储机制，使用redis存储
 SESSION_CACHE_ALIAS = 'session'   # 使用名为 'session' 的redis配置项存储session数据
 
 
