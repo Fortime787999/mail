@@ -1,4 +1,4 @@
-from django.contrib.auth import login,authenticate
+from django.contrib.auth import login,authenticate,logout
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -117,6 +117,15 @@ class LoginView(View):
         response = redirect(next_url)
         # 向cookie中写入用户名，用于客户端展示
         response.set_cookie('username', username, max_age=constants.USERNAME_COOKIE_EXPIRES)
+        return response
+
+
+class LogoutView(View):
+
+    def get(self, request):
+        logout(request)
+        response = redirect(reverse('users:login'))
+        response.delete_cookie('username')
         return response
 
 
