@@ -6,6 +6,7 @@ from . import constants
 from django.http import HttpResponse,JsonResponse
 from mail.utils.response_code import RETCODE
 import random
+from celery_tasks.sms.tasks import send_sms
 # Create your views here.
 
 
@@ -50,7 +51,7 @@ class SmsCodeView(View):
         pipe_line.setex('flags_%s' % mobile, constants.SEND_FLAG, 1)
         pipe_line.execute()
         # 发送短信
-        print(number)
+        send_sms.delay(mobile, number)
         return JsonResponse({'code': RETCODE.OK, 'errmsg': '发送短信成功'})
 
 
