@@ -1,4 +1,4 @@
-from django.contrib.auth import login
+from django.contrib.auth import login,authenticate
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -46,9 +46,7 @@ class RegisterView(View):
             return HttpResponseForbidden('请输入正确的手机号')
         if User.objects.filter(mobile=mobile):
             return HttpResponseForbidden('手机号已经存在')
-        # 判断是否同意许可协议
-        if allow != 'on':
-            return HttpResponse('请同意许可协议')
+
         sms_conn = get_redis_connection('sms_code')
         sms_conn_code = sms_conn.get('sms_%s' % mobile)
         if sms_conn_code is None:
@@ -68,7 +66,7 @@ class RegisterView(View):
         # 创建用户成功，自动登录并返回首页
         login(request, user)
         response = redirect(reverse('contenes:index'))
-        response.set_cookie('username', username, max_age=14 * 24 * 3600)
+        response.set_cookie('username', username, max_age=constants.USERNAME_COOKIE_EXPIRES)
         return response
 
 
@@ -84,3 +82,42 @@ class MobileRepeatView(View):
     def get(self, request, mobile):
         count = User.objects.filter(mobile=mobile).count()
         return JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'count': count})
+
+
+class LoginView(View):
+
+    def get(self, request):
+        next_url = request.GET.get('next', '/')
+        if request.user.is_authenticated:
+            return redirect(next_url)
+        return render(request, 'login.html')
+
+    def post(self, request):
+        username = request.POST.get('username')
+        password = request.POST.get('pwd')
+        remembered = request.POST.get('remembered')
+        next_url = request.GET.get('next', '/')
+
+        if not all([username, password]):
+            return HttpResponseForbidden('缺少传入参数')
+            # 判断用户名是否为5-20个字符
+        if not re.match(r'^[a-zA-Z0-9_-]{5,20}$', username):
+            return HttpResponseForbidden('用户名为5-20个字符')
+        # 判断密码是否为8-20个字符
+        if not re.match(r'^[a-zA-Z0-9]{8,20}$', password):
+            return HttpResponseForbidden('密码为8-20个字符')
+        user = authenticate(username=username, password=password)
+        if user is None:
+            return render(request, 'login.html', {'account_errmsg': '用户名或密码错误'})
+        login(request, user)
+        if remembered != 'on':
+            request.session.set_expiry(0)
+        else:
+            request.session.set_expiry(None)
+        response = redirect(next_url)
+        # 向cookie中写入用户名，用于客户端展示
+        response.set_cookie('username', username, max_age=constants.USERNAME_COOKIE_EXPIRES)
+        return response
+
+
+
