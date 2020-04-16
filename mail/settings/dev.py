@@ -206,3 +206,5 @@ LOGGING = {
 }
 # 设置项目模型类
 AUTH_USER_MODEL = 'users.User'
+# 指定认证后端
+AUTHENTICATION_BACKENDS = ['mail.utils.authenticate.MailModelBacked']
