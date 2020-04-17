@@ -8,7 +8,9 @@ from .models import User
 from mail.utils.response_code import RETCODE
 from . import constants
 from django_redis import get_redis_connection
+from mail.utils.login import LoginRequiredMixin
 import logging
+
 
 logger = logging.getLogger('django')
 
@@ -127,6 +129,12 @@ class LogoutView(View):
         response = redirect(reverse('users:login'))
         response.delete_cookie('username')
         return response
+
+
+class UserInfoView(LoginRequiredMixin, View):
+
+    def get(self, request):
+        return render(request, 'user_center_info.html')
 
 
 

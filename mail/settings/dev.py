@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'contents',
+    'verification',
+    'oauth',
 ]
 
 MIDDLEWARE = [
@@ -208,3 +210,11 @@ LOGGING = {
 AUTH_USER_MODEL = 'users.User'
 # 指定认证后端
 AUTHENTICATION_BACKENDS = ['mail.utils.authenticate.MailModelBacked']
+
+# 指定登录视图URL地址
+LOGIN_URL = '/login/'
+
+# QQ授权登录的信息
+QQ_CLIENT_ID = '101518219'
+QQ_CLIENT_SECRET = '418d84ebdc7241efb79536886ae95224'
+QQ_REDIRECT_URI = 'http://www.meiduo.site:8000/oauth_callback'
