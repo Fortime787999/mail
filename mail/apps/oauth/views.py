@@ -9,6 +9,8 @@ from django_redis import get_redis_connection
 from .models import OAuthQQUser
 from users.models import User
 from django.contrib.auth import login
+from mail.utils import SignatureSerializer
+from . import constants
 import logging
 
 logger = logging.getLogger('django')
@@ -47,7 +49,8 @@ class OauthOpenidView(View):
         except Exception as e:
             # 未查询到数据，说明为初次授权
             logger.info(e)
-            return render(request, 'oauth_callback.html', {'token': openid})
+            json_openid = SignatureSerializer.dumps({'openid': openid}, constants.OPEN_EXPIRE)
+            return render(request, 'oauth_callback.html', {'token': json_openid})
         # 查询到数据，说明已经授权过，直接登录并跳转页面
         user = open_user.user
         login(request, user)
@@ -79,6 +82,12 @@ class OauthOpenidView(View):
         if sms_code != sms_conn_code.decode():
             return HttpResponseForbidden('验证码错误')
 
+        # 判断openid是否有效
+        openid_dict = SignatureSerializer.loads(access_token, constants.OPEN_EXPIRE)
+        if openid_dict is None:
+            return HttpResponseForbidden('授权信息无效，请重新授权')
+        openid = openid_dict.get('openid')
+
         # 判断手机号是否注册，如果注册，则绑定该用户，否则注册新用户
         try:
             user = User.objects.get(mobile=mobile)
@@ -90,8 +99,9 @@ class OauthOpenidView(View):
             # 说明手机号已被注册，检查密码是否正确
             if not user.check_password(password):
                 return HttpResponseForbidden('手机号或密码错误')
+
         # 创建QQ用户模型与用户相绑定
-        open_user = OAuthQQUser.objects.create(user=user,openid=access_token)
+        open_user = OAuthQQUser.objects.create(user=user,openid=openid)
         login(request,user)
         response = redirect(state)
         response.set_cookie('username', user.username)

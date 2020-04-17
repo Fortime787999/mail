@@ -3,12 +3,16 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.generic import View
+from django.conf import settings
 import re
 from .models import User
 from mail.utils.response_code import RETCODE
 from . import constants
 from django_redis import get_redis_connection
 from mail.utils.login import LoginRequiredMixin
+from mail.utils import SignatureSerializer
+from celery_tasks.email.tasks import send_active_mail
+import json
 import logging
 
 
@@ -134,7 +138,55 @@ class LogoutView(View):
 class UserInfoView(LoginRequiredMixin, View):
 
     def get(self, request):
+        # 观看前端代码可知，会自动读取登录用户信息，无需发送
         return render(request, 'user_center_info.html')
+
+
+class EmailActiceView(LoginRequiredMixin, View):
+
+    def put(self, request):
+        user = request.user
+        json_dict = json.loads(request.body.decode())
+        email = json_dict.get('email')
+
+        if not email:
+            return HttpResponseForbidden('缺少传入参数')
+        if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+            return HttpResponseForbidden('请填写正确的邮箱格式')
+        try:
+            user.email = email
+            user.save()
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({'code': RETCODE.DBERR, 'errmsg': '添加邮箱失败'})
+        # 发送邮件激活
+        # 设置邮件验证地址
+        token = {'id': user.id}
+        token = SignatureSerializer.dumps(token, constants.EMAIL_ACTIVE_EXPIRES)
+        verifi_url = settings.EMAIL_VERIFY_URL + '?token=' + token
+        send_active_mail.delay(email, verifi_url)
+        return JsonResponse({'code': RETCODE.OK, 'errmsg':'发送激活邮件成功'})
+
+
+class EmailVeriView(LoginRequiredMixin, View):
+
+    def get(self,request):
+        token = request.GET.get('token')
+        if not token:
+            return HttpResponseForbidden('无效参数')
+        token_dict = SignatureSerializer.loads(token, constants.EMAIL_ACTIVE_EXPIRES)
+        if token is None:
+            return HttpResponseForbidden('无效链接')
+        user_id = token_dict.get('id')
+        try:
+            user = User.objects.get(id=user_id)
+            user.email_active = True
+            user.save()
+        except Exception as e:
+            logger.error(e)
+            return HttpResponseForbidden('用户不存在')
+
+        return redirect(reverse('users:info'))
 
 
 

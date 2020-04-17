@@ -1,0 +1,1 @@
+OPEN_EXPIRE = 5 * 60
