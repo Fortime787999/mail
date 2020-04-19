@@ -361,6 +361,54 @@ class AddressUpdateView(LoginRequiredMixin, View):
             return JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'address': address_dict})
 
 
+class TitleUpdataView(LoginRequiredMixin, View):
+
+    def put(self, request, address_id):
+        data_dict = json.loads(request.body.decode())
+        title = data_dict.get('title')
+        if not title:
+            return JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': '缺少传入参数'})
+        try:
+            address = Address.objects.get(id = address_id)
+            address.title = title
+            address.save()
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({'code': RETCODE.DBERR, 'errmsg': '修改标题失败'})
+        else:
+            return JsonResponse({'code': RETCODE.OK, 'errmsg': '修改标题成功'})
+
+
+class UserPasswordView(LoginRequiredMixin, View):
+
+    def get(self, request):
+        return render(request, 'user_center_pass.html')
+
+    def post(self, request):
+        old_pwd = request.POST.get('old_pwd')
+        new_pwd = request.POST.get('new_pwd')
+        new_cpwd = request.POST.get('new_cpwd')
+        if not all([old_pwd, new_cpwd, new_pwd]):
+            return HttpResponseForbidden('缺少传入参数')
+        if not request.user.check_password(old_pwd):
+            return HttpResponseForbidden('请输入正确的当前密码')
+        if not re.match(r'^[0-9A-Za-z]{8,20}$', new_pwd):
+            return HttpResponseForbidden('密码为8-20个字符')
+        if new_pwd != new_cpwd:
+            return HttpResponseForbidden('两次输入的密码不一致')
+        try:
+            request.user.set_password(new_pwd)
+            request.user.save()
+        except Exception as e:
+            logger.error(e)
+            return HttpResponseForbidden('修改密码失败，请重试')
+        else:
+            logout(request)
+            response = redirect(reverse('users:login'))
+            response.delete_cookie('username')
+            return response
+
+
 
 
 
