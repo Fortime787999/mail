@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.views.generic import View
 from django.conf import settings
 import re
-from .models import User
+from .models import User, Address
 from mail.utils.response_code import RETCODE
 from . import constants
 from django_redis import get_redis_connection
@@ -187,6 +187,180 @@ class EmailVeriView(LoginRequiredMixin, View):
             return HttpResponseForbidden('用户不存在')
 
         return redirect(reverse('users:info'))
+
+
+class AddressView(LoginRequiredMixin, View):
+
+    def get(self, request):
+        address_list = []
+        try:
+            addresses = request.user.addresses.filter(is_deleted=False)
+            for address in addresses:
+                address_list.append({
+                    'id': address.id,
+                    'title': address.title,
+                    'receiver': address.receiver,
+                    'province_id': address.province_id,
+                    'city_id': address.city_id,
+                    'district_id': address.district_id,
+                    'place': address.place,
+                    'mobile': address.mobile,
+                    'tel': address.tel,
+                    'email': address.email
+                })
+        except Exception as e:
+            logger.error(e)
+            return render(request, '404.html')
+        else:
+            context = {
+                'default_address_id': request.user.default_address_id,
+                'addresses': address_list,
+            }
+            return render(request, 'user_center_site.html', context=context)
+
+
+class AddressCreateView(LoginRequiredMixin, View):
+
+    def post(self, request):
+        # 最大地址数为20个，需要判断是否超出
+        count = request.user.addresses.count()
+        if count > constants.USER_ADDRESS_COUNTS_LIMIT:
+            return JsonResponse({'code': RETCODE.THROTTLINGERR, 'errmsg': '地址数量超出上限'})
+        data_dict = json.loads(request.body.decode())
+        title = data_dict.get('title')
+        receiver = data_dict.get('receiver')
+        province_id = data_dict.get('province_id')
+        city_id = data_dict.get('city_id')
+        district_id = data_dict.get('district_id')
+        place = data_dict.get('place')
+        mobile = data_dict.get('mobile')
+        tel = data_dict.get('tel')
+        email = data_dict.get('email')
+        if not all([title, receiver, province_id, city_id, district_id, place, mobile]):
+            return JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': '缺少传入参数'})
+        if not re.match(r'^1[345789]\d{9}$', mobile):
+            return JsonResponse({'code': RETCODE.MOBILEERR, 'errmsg': '请输入正确的手机号'})
+        if tel:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$', tel):
+                return JsonResponse({'code': RETCODE.TELERR, 'errmsg': '请输入正确的固定号码'})
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+                return JsonResponse({'code': RETCODE.EMAILERR, 'errmsg': '请输入正确的邮箱地址'})
+        try:
+            address = Address.objects.create(user = request.user,
+                                   title = title,
+                                   receiver = receiver,
+                                   province_id = province_id,
+                                   city_id = city_id,
+                                   district_id = district_id,
+                                   place = place,
+                                   mobile = mobile,
+                                   tel = tel,
+                                   email = email)
+            # 如果没有默认地址，自动设为默认地址
+            if not request.user.default_address:
+                request.user.default_address = address
+                address.save()
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({'code': RETCODE.DBERR, 'errmsg': '添加地址失败'})
+        else:
+            address_dict = {
+                'id': address.id,
+                'title': title,
+                'receiver': receiver,
+                'province_id': province_id,
+                'city_id': city_id,
+                'district_id': district_id,
+                'place': place,
+                'mobile': mobile,
+                'tel': tel,
+                'email': email
+            }
+            return JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'address': address_dict})
+
+
+class AddressDefaultView(LoginRequiredMixin, View):
+
+    def put(self, request, address_id):
+        try:
+            address = request.user.addresses.get(id=address_id, is_deleted=False)
+            request.user.default_address = address
+            request.user.save()
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': '数据出错'})
+        else:
+            return JsonResponse({'code': RETCODE.OK, 'errmsg': '设置默认地址成功'})
+
+
+class AddressUpdateView(LoginRequiredMixin, View):
+
+    def delete(self, request, address_id):
+        try:
+            address = request.user.addresses.get(id=address_id, is_deleted=False)
+            address.is_deleted = True
+            if request.user.default_address == address:
+                request.user.default_address = None
+                request.user.save()
+            address.save()
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': '删除地址失败'})
+        else:
+            return JsonResponse({'code': RETCODE.OK, 'errmsg': '删除地址成功'})
+
+    def put(self, request, address_id):
+        data_dict = json.loads(request.body.decode())
+        title = data_dict.get('title')
+        receiver = data_dict.get('receiver')
+        province_id = data_dict.get('province_id')
+        city_id = data_dict.get('city_id')
+        district_id = data_dict.get('district_id')
+        place = data_dict.get('place')
+        mobile = data_dict.get('mobile')
+        tel = data_dict.get('tel')
+        email = data_dict.get('email')
+        if not all([title, receiver, province_id, city_id, district_id, place, mobile]):
+            return JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': '缺少传入参数'})
+        if not re.match(r'^1[345789]\d{9}$', mobile):
+            return JsonResponse({'code': RETCODE.MOBILEERR, 'errmsg': '请输入正确的手机号'})
+        if tel:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$', tel):
+                return JsonResponse({'code': RETCODE.TELERR, 'errmsg': '请输入正确的固定号码'})
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+                return JsonResponse({'code': RETCODE.EMAILERR, 'errmsg': '请输入正确的邮箱地址'})
+        try:
+            Address.objects.filter(id=address_id).update(user=request.user,
+                                             title=title,
+                                             receiver=receiver,
+                                             province_id=province_id,
+                                             city_id=city_id,
+                                             district_id=district_id,
+                                             place=place,
+                                             mobile=mobile,
+                                             tel=tel,
+                                             email=email)
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({'code': RETCODE.DBERR, 'errmsg': '修改地址失败'})
+        else:
+            address_dict = {
+                'id': address_id,
+                'title': title,
+                'receiver': receiver,
+                'province_id': province_id,
+                'city_id': city_id,
+                'district_id': district_id,
+                'place': place,
+                'mobile': mobile,
+                'tel': tel,
+                'email': email
+            }
+            return JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'address': address_dict})
+
+
 
 
 
