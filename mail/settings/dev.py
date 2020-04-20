@@ -236,3 +236,9 @@ EMAIL_FROM = '美多商城<1013703304@qq.com>'
 
 # 邮箱验证链接
 EMAIL_VERIFY_URL = 'http://www.meiduo.site:8000/emails/verification/'
+
+# 图片访问域名
+IMAGE_URL = 'http://image.meiduo.site:8888/'
+
+# 指定文件存储类
+DEFAULT_FILE_STORAGE = 'mail.utils.fastdfs.MailStorage.MailStorage'
