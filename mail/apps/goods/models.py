@@ -119,7 +119,7 @@ class SKU(BaseModel):
     """商品SKU"""
     name = models.CharField(max_length=50, verbose_name='名称')
     caption = models.CharField(max_length=100, verbose_name='副标题')
-    spu = models.ForeignKey(SPU, on_delete=models.CASCADE, verbose_name='商品')
+    spu = models.ForeignKey(SPU, on_delete=models.CASCADE, related_name='skus', verbose_name='商品')
     category = models.ForeignKey(GoodsCategory, on_delete=models.PROTECT, verbose_name='从属类别')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='单价')
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='进价')

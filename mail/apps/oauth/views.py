@@ -10,6 +10,7 @@ from .models import OAuthQQUser
 from users.models import User
 from django.contrib.auth import login
 from mail.utils import SignatureSerializer
+from carts.utils import merge_cart
 from . import constants
 import logging
 
@@ -56,6 +57,7 @@ class OauthOpenidView(View):
         login(request, user)
         response = redirect(state)
         response.set_cookie('username', user.username)
+        merge_cart(request, response)
         return response
 
     def post(self, request):
@@ -105,5 +107,6 @@ class OauthOpenidView(View):
         login(request,user)
         response = redirect(state)
         response.set_cookie('username', user.username)
+        merge_cart(request, response)
         return response
 

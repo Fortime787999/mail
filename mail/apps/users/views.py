@@ -12,6 +12,7 @@ from django_redis import get_redis_connection
 from mail.utils.login import LoginRequiredMixin
 from mail.utils import SignatureSerializer
 from celery_tasks.email.tasks import send_active_mail
+from carts.utils import merge_cart
 import json
 import logging
 
@@ -123,6 +124,7 @@ class LoginView(View):
         response = redirect(next_url)
         # 向cookie中写入用户名，用于客户端展示
         response.set_cookie('username', username, max_age=constants.USERNAME_COOKIE_EXPIRES)
+        merge_cart(request, response)
         return response
 
 
