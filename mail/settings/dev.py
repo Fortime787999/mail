@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'areas',
     'goods',
     'haystack', # 全文检索
+    'carts',
+    'orders',
 ]
 
 MIDDLEWARE = [
