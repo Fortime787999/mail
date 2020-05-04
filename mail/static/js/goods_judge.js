@@ -41,7 +41,7 @@ var vm = new Vue({
         save_comment(index){
             var sku = this.skus[index];
             if (sku.comment.length < 5){
-                alert('请填写多余5个字的评价内容');
+                alert('请填写多于5个字的评价内容');
             } else {
                 var url = this.host + '/orders/comment/';
                 axios.post(url, {

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'haystack', # 全文检索
     'carts',
     'orders',
+    'payments'
 ]
 
 MIDDLEWARE = [
@@ -273,3 +274,9 @@ HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 # 每页显示商品数量
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5
+
+# 支付宝配置
+ALIPAY_APPID = '2016101100660883'  # 商家账号
+ALIPAY_DEBUG = True  # 设置为True表示使用沙箱，设置为False则为正式环境
+ALIPAY_URL = 'https://openapi.alipaydev.com/gateway.do'  # 支付网关，固定
+ALIPAY_RETURN_URL = 'http://www.meiduo.site:8000/payment/status/'  # 支付成功后，支付宝返回的地址

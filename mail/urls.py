@@ -26,5 +26,6 @@ urlpatterns = [
     url(r'^', include('goods.urls', namespace='goods')),
     url(r'^search/', include('haystack.urls')),
     url(r'^', include('carts.urls', namespace='carts')),
-    url(r'^', include('orders.urls', namespace='orders'))
+    url(r'^', include('orders.urls', namespace='orders')),
+    url(r'^', include('payments.urls', namespace='payments'))
 ]
